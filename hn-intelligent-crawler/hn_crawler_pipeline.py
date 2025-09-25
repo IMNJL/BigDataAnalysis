@@ -1,20 +1,23 @@
+# hn_crawler_pipeline.py
 """
 Pipeline modes:
 - top: crawl top stories (обычно до ~500 id)
 - archive: crawl последние N записей начиная от maxitem.json
 
-Этапы:
-1) Crawl → сохранить raw JSON в hn_raw.db
-2) Clean → обработать текст → hn_cleaned.db
-3) Вывести примеры
+1) Crawl -> save raw JSON into hn_raw.db
+2) Parse & Clean -> read hn_raw.db, clean text -> save into hn_cleaned.db
+3) Print examples
 """
 
 import asyncio
 import aiohttp
 import aiosqlite
 import time
+import html
 import json
-from hn_utils import clean_html_fragment
+import re
+from bs4 import BeautifulSoup
+from typing import Optional
 
 BASE = "https://hacker-news.firebaseio.com/v0"
 TOP_STORIES = f"{BASE}/topstories.json"
@@ -27,10 +30,24 @@ CLEAN_DB = "hn_cleaned.db"
 
 # Config
 CONCURRENT_REQUESTS = 64
-REQUEST_DELAY = 0.1
+REQUEST_DELAY = 0.1     # politeness delay
 DEFAULT_TOP_LIMIT = 500
 DEFAULT_ARCHIVE_LIMIT = 100000
 SAMPLE_PRINT = 10
+
+# ---------- Utilities ----------
+def clean_html_fragment(raw_html: Optional[str]) -> str:
+    if not raw_html:
+        return ""
+    un = html.unescape(raw_html)
+    soup = BeautifulSoup(un, "html.parser")
+    text = soup.get_text(separator=" ", strip=True)
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"\S+@\S+\.\S+", "[email_removed]", text)
+    text = re.sub(r"[\$€£¥]", " ", text)
+    text = re.sub(r"[^\w\s]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text.lower()
 
 # ---------- DB schemas ----------
 RAW_CREATE_SQL = """
@@ -90,7 +107,10 @@ async def crawl_and_save_raw(mode="top", limit=None):
             ids = await fetch_json(session, TOP_STORIES)
             if not ids:
                 return 0
-            ids = ids[:limit or DEFAULT_TOP_LIMIT]
+            if limit:
+                ids = ids[:limit]
+            else:
+                ids = ids[:DEFAULT_TOP_LIMIT]
         elif mode == "archive":
             max_id = await fetch_json(session, MAXITEM)
             if not max_id:
@@ -201,7 +221,7 @@ async def run_pipeline(mode="top", limit=None):
 if __name__ == "__main__":
     print("Starting pipeline...")
     print("Choose mode:\n Mode: top, limit: 500\n Mode: archive, limit: 100000")
-    a = input("Enter mode: ").strip()
+    a = input("Enter mode: ")
     if a == "top":
         asyncio.run(run_pipeline(mode="top", limit=500))
     elif a == "archive":
