@@ -1,0 +1,16 @@
+visits.jsonl
+.env
+venv/
+main.py
+*.db
+*.jsonl
+*.csv
+*.txt
+*.html
+*.css
+*.js
+*.png
+*.jpg
+*.jpeg
+__pycache__/
+
