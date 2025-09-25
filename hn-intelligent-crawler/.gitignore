@@ -1,7 +1,6 @@
 visits.jsonl
 .env
 venv/
-main.py
 *.db
 *.jsonl
 *.csv
@@ -14,4 +13,6 @@ main.py
 *.jpeg
 __pycache__/
 *.pyc
+
+examples/
 
