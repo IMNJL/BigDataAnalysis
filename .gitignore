@@ -45,6 +45,8 @@ ENV/
 .idea/
 .DS_Store
 
+*venv/
+
 # OS
 Thumbs.db
 EOF
