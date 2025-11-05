@@ -41,8 +41,9 @@ pip install -r requirements.txt
 
 5. Run (simulate LLM):
 
+go inside BDA_9 project folder and run
 ```bash
-./run.sh 50 --simulate-llm
+python3 make_report.py --user 50
 ```
 
 This will:
