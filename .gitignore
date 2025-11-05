@@ -1,0 +1,50 @@
+# Create or update .gitignore
+cat > .gitignore << EOF
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+svelte/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.env
+.venv
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Document files
+*.docx
+*.pdf
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# OS
+Thumbs.db
+EOF
