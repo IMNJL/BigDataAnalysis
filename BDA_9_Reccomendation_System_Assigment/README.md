@@ -19,13 +19,36 @@ This project is designed to provide a recommendation system using various machin
 
 - **tests/**: Contains unit tests for the project.
 
-## Installation
+## Run steps (macOS)
 
-To install the required dependencies, run:
+- Open Terminal and execute:
 
+1. Create project folder and files as above (or copy provided files).
+2. Create and activate venv:
+```bash
+cd /Users/pro/Downloads/BigDataAnalysis/BDA_9_Recommendation
+python3 -m venv venv
+source venv/bin/activate
 ```
+3. Install requirements:
+```bash
 pip install -r requirements.txt
 ```
+4. Place MovieLens ml-100k folder at:
+
+```/Users/pro/Downloads/BigDataAnalysis/BDA_9_Recommendation/data/raw/ml-100k (download from https://grouplens.org/datasets/movielens/100k/)```
+
+
+5. Run (simulate LLM):
+
+```bash
+./run.sh 50 --simulate-llm
+```
+
+This will:
+- produce outputs/results_user_50.txt
+- create BDA_9_Recommendation_report.docx in project root
+
 
 ## Usage
 

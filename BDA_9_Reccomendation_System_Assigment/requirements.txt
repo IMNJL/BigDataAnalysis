@@ -8,3 +8,5 @@ tensorflow
 torch
 lightgbm
 xgboost
+
+python-docx
