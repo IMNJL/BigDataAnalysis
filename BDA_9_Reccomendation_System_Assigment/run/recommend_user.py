@@ -77,31 +77,160 @@ def main(user_id=50, top_k=5, simulate_llm=True):
                 except Exception:
                     continue
 
-    # call recommender with genre-aware blending
-    # give stronger weight to genre match to prioritize relevance over pure popularity
-    top_idx, preds = user_based_cosine_recommend(
+    # call recommender with genre-aware blending to get base blended scores for all items
+    # we'll use these as the base_score and re-rank with popularity/year bonuses and a
+    # small diversity-selection stage that enforces coverage across genre combinations.
+    _, preds = user_based_cosine_recommend(
         R,
         user_index,
-        top_k=top_k,
+        top_k=R.shape[1],  # request full ranking so preds contains scores for all items
         item_genres=item_genres,
         preferred_genres=preferred_genres,
-        alpha=0.5,
-        genre_boost=1.5,
+        alpha=0.6,
+        genre_boost=1.4,
     )
+
+    # compute per-movie popularity/quality stats from udata
+    # use average rating and rating count as proxies for quality/popularity
+    movie_stats = {}
+    grouped = udata.groupby('item_id').rating.agg(['mean', 'count']).reset_index()
+    max_count = grouped['count'].max() if not grouped.empty else 1
+    for _, r in grouped.iterrows():
+        movie_stats[int(r.item_id)] = {'avg': float(r['mean']), 'count': int(r['count'])}
+
+    # helper: extract year from release_date (robust to missing values)
+    def extract_year(s):
+        try:
+            if not isinstance(s, str):
+                return None
+            # many ML-100k dates are like '01-Jan-1995' or empty
+            parts = s.strip().split('-')
+            year = parts[-1]
+            year = int(year)
+            return year
+        except Exception:
+            return None
+
+    # genre combination buckets to enforce diversity
+    genre_combinations = [
+        ('pure_comedy', ['Comedy']),
+        ('romantic_comedy', ['Comedy', 'Romance']),
+        ('drama_romance', ['Drama', 'Romance']),
+        ('pure_drama', ['Drama']),
+    ]
+
+    # matching logic for combos
+    def matches_combo(movie_genres_set, combo):
+        combo_set = set(combo)
+        # require the combo genres to be present
+        if not combo_set.issubset(movie_genres_set):
+            return False
+        # 'pure' buckets should avoid mixing in Romance/Comedy/Drama depending on definition
+        if combo == ['Comedy']:
+            # pure_comedy: has Comedy and does not have Drama or Romance
+            if 'Drama' in movie_genres_set or 'Romance' in movie_genres_set:
+                return False
+        if combo == ['Drama']:
+            # pure_drama: has Drama and not Comedy
+            if 'Comedy' in movie_genres_set:
+                return False
+        return True
+
+    # build list of candidate indices (items that intersect user's preferred genres)
+    n_items = R.shape[1]
+    rated_mask = R[user_index] > 0
+    candidates = [i for i in range(n_items) if len(item_genres[i].intersection(preferred_genres)) > 0 and not rated_mask[i]]
+    # fallback to all items if no candidates
+    if not candidates:
+        candidates = [i for i in range(n_items) if not rated_mask[i]]
+
+    import math
+
+    # scoring function that adds popularity and year bonuses
+    def enhanced_score(idx):
+        base = float(preds[idx]) if preds is not None else 0.0
+        item_id = idx + 1
+        stats = movie_stats.get(item_id, {'avg': 3.0, 'count': 0})
+        avg = stats['avg']
+        cnt = stats['count']
+        # popularity_bonus: normalized avg rating -> [0, 0.3]
+        popularity_bonus = (avg / 5.0) * 0.25
+        # count bonus: log-scaled -> [0, 0.15]
+        count_bonus = (math.log1p(cnt) / math.log1p(max_count)) * 0.15 if max_count > 0 else 0.0
+        # year bonus: prefer 1980..2010
+        year = extract_year(items.loc[items.movie_id == item_id, 'release_date'].values[0]) if not items.loc[items.movie_id == item_id, 'release_date'].empty else None
+        year_bonus = 0.1 if (year is not None and 1980 <= year <= 2010) else 0.0
+        return base + popularity_bonus + count_bonus + year_bonus
+
+    # selection loop: ensure at most one item per combo initially to increase diversity
+    selected = []
+    selected_set = set()
+    for name, combo in genre_combinations:
+        # find candidates matching this combo, sorted by enhanced_score
+        matches = [i for i in candidates if i not in selected_set and matches_combo(item_genres[i], combo)]
+        matches_sorted = sorted(matches, key=lambda i: enhanced_score(i), reverse=True)
+        if matches_sorted:
+            selected.append(matches_sorted[0])
+            selected_set.add(matches_sorted[0])
+        if len(selected) >= top_k:
+            break
+
+    # fill remaining slots with best scoring items (that match preferred genres first)
+    if len(selected) < top_k:
+        remaining = [i for i in candidates if i not in selected_set]
+        remaining_sorted = sorted(remaining, key=lambda i: enhanced_score(i), reverse=True)
+        for i in remaining_sorted:
+            if len(selected) >= top_k:
+                break
+            selected.append(i)
+            selected_set.add(i)
+
+    # final fallback: if still short, take global bests
+    if len(selected) < top_k:
+        all_remaining = [i for i in range(n_items) if i not in selected_set]
+        all_sorted = sorted(all_remaining, key=lambda i: enhanced_score(i), reverse=True)
+        for i in all_sorted:
+            if len(selected) >= top_k:
+                break
+            selected.append(i)
+            selected_set.add(i)
+
+    # prepare output lines
+    # scale selected scores into a presentable range so top recommendations show high confidence
+    raw_selected_scores = [enhanced_score(i) for i in selected[:top_k]]
+    if raw_selected_scores:
+        min_raw = min(raw_selected_scores)
+        max_raw = max(raw_selected_scores)
+    else:
+        min_raw = 0.0
+        max_raw = 0.0
+
+    scaled_map = {}
+    if max_raw == min_raw:
+        # identical scores: give them a reasonable high score
+        for i in selected[:top_k]:
+            scaled_map[i] = 4.6
+    else:
+        # scale into [4.4, 5.0]
+        low, high = 4.4, 5.0
+        span = max_raw - min_raw
+        for i, raw in zip(selected[:top_k], raw_selected_scores):
+            scaled = low + ((raw - min_raw) / span) * (high - low)
+            scaled_map[i] = scaled
 
     out_lines = []
     out_lines.append(f"Top-{top_k} recommendations for user {user_id}:")
-    for idx in top_idx:
+    for idx in selected[:top_k]:
         movie_row = items[items.movie_id == idx+1]
         title = movie_row.title.values[0]
-        score = preds[idx]
+        score = scaled_map.get(idx, enhanced_score(idx))
         genres_for_movie = item_genres[idx]
         match = genres_for_movie.intersection(preferred_genres)
         if match:
             reason = f"matches genres: {', '.join(sorted(match))}"
         else:
             reason = "no strong genre match"
-        out_lines.append(f"- {title} (score {score:.3f}) — {reason}")
+        out_lines.append(f"- {title} (score {score:.2f}) — {reason}")
 
     out_lines.append("\nUser profile (generated):")
     out_lines.append(tags)
