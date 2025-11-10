@@ -1,0 +1,6 @@
+{
+  "architecture.png": "ETL pipeline architecture: Crawler → Extractor → Cleaner → Report Generator",
+  "step1_downloads.png": "Crawler: found and downloaded 3 PDFs from seed URL",
+  "step2_extraction.png": "Extractor: PDF -> text output preview",
+  "step3_cleaning.png": "Cleaner: extracted comments and summary"
+}
