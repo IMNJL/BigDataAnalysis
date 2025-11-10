@@ -1,4 +1,4 @@
-#+ Big Data Analysis Technology — Course Materials
+# Big Data Analysis Technology — Course Materials
 
 This repository contains course materials, code examples and experiments for the Big Data Analysis Technology course (English). The course follows Bloom's taxonomy to build a competency hierarchy: remembering, understanding, applying, analyzing, evaluating and creating. It combines theoretical explanations with engineering practice so learners gain both conceptual knowledge and hands-on skills.
 
@@ -167,12 +167,5 @@ If the script reads external experiment outputs, ensure those output files exist
 
 Course materials and code are provided for educational use. If you reuse or redistribute, please keep attribution to the original author(s) and the course.
 
----
 
-If you want, I can now (choose one):
 
-- (A) Generate a full README in Chinese only (alternate), or
-- (B) Add the `train_ddp.py` and `spark_torch_distributor_example.py` example files to `BDA_8` and a `requirements.txt`, or
-- (C) Run report generators and produce DOCX files (I will need permission to execute scripts here).
-
-Pick one option and I will continue.
