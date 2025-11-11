@@ -110,23 +110,27 @@ Each experimental folder in this repository contains code, a README, and scripts
 
 ---
 
-## 6. Table of practical topics (beginning from Crawler and Cleaner)
+## 6. Practical topics checklist (beginning from Crawler and Cleaner)
 
-The table below lists practical topics and sub-topics covered by the experiments. Use it as a checklist for hands-on skills and to navigate folders in the repository.
+The table below is a compact checklist of project/homework items (dates shown as in the course board screenshot). Use this to track which experiments are handed in or pending.
 
-| Topic group | Subtopics / Exercises | Key files / folders |
-|---|---|---|
-| Crawler & Data Ingestion | Dynamic web crawler (requests/selenium), politeness, link extraction, PDF/asset download | `BDA_3_AI_enhanced_ETL/crawler.py`, `BDA_3_AI_enhanced_ETL/examples/` |
-| PDF Extraction & Cleaner | PDF text extraction, basic OCR notes, text cleaning, summary extraction | `BDA_3_AI_enhanced_ETL/extract_pdf.py`, `BDA_3_AI_enhanced_ETL/cleaner.py`, `data/processed/` |
-| ETL & Preprocessing Pipelines | Tokenization, text normalization, Parquet export, Spark UDFs | `BDA_3_AI_enhanced_ETL/` and `BDA_8` examples |
-| Feature Engineering | Numeric, categorical encoding, embeddings (TF-IDF, pretrained transformers) | `BDA_9_Reccomendation_System_Assigment/src/features/` |
-| Spark MLlib | Regression, classification, pipelines, scaling, HyperParam tuning (basic) | `BDA_6_Topic5_Regression_Clustering/run_experiment1.py`, `make_report.py` |
-| Deep Learning (TensorFlow / PyTorch) | Small model training, dataset API, mixed precision, saving checkpoints | `BDA_3`, `BDA_8/train_ddp.py` (examples), `BDA_6` experiment scripts |
-| Recommendation Systems | User/item collaborative filtering, hybrid methods, diversity, popularity bias mitigation, evaluation | `BDA_9_Reccomendation_System_Assigment/src/`, `run/recommend_user.py`, `outputs/` |
-| Clustering & Representation Learning | KMeans baseline, autoencoder/DeepCluster proxies, NMI evaluation | `BDA_6_Topic5_Regression_Clustering/outputs/exp2/` |
-| Evaluation & Metrics | Precision@K, NDCG, MSE/RMSE, R^2, NMI | evaluation scripts (planned: `evaluate.py`) |
-| Visualization & Reporting | Generating DOCX reports, architecture diagrams (Pillow), plots (matplotlib) | `make_report.py` per folder, `BDA_3/generate_architecture_diagram.py` |
-| Distributed Training & Orchestration | PyTorch DDP, All-Reduce, TorchDistributor (Spark), Ray Train & Tune | `BDA_8` examples, `BDA_3` integration notes |
+| DD| HW | Project / Exercise | Status | Note |
+|---:|---:|---|:---:|---|
+| 25.09 | HW1 | [Topic 1 - Crawler & cleaner + report -> lexie](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_1_crawler_and_cleaner) | 🟢 | handed |
+| 16.10 | HW2 | Multi modal Homework | 🟢 | handed |
+| 27.10 | HW3 | [Topic 3 - Use AI enhanced ETL to Extract Information](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_3_AI_enhanced_ETL) | 🟢 | handed |
+| 01.11 | HW4 | Topic 4 — Snorkel, autoLabeling | 🔴 | !!! |
+| 08.11 | HW5 | [Topic 9 - Recommendation System Assignment — Comparative study & LLM-enhanced recsys](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_3_AI_enhanced_ETL) | 🟢 | handed |
+| 11.11 | HW6 | [Linear Regression, Lasso, Polynomial, Neural Network Regression](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_6_Topic5_Regression_Clustering) | 🟢 | handed |
+| 11.11 | HW8 | ["Data Parallelism" and "Model Parallelism" — Spark MLlib, PyTorch](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_8_Data_parallelism_and_Model_Parallelism DDP) | 🟢 | handed |
+| 12.11 | HW5* | AutoML and Featuretools | 🟢 | handed |
+| 13.11 | HW10 | HW-BDA-10-KG | 🔴 | pending |
+| 16.11 | HW11 | HW-BDA-11-Agent | 🔴 | pending |
+| 20.11 | HW7 | FinBert | 🔴 | pending |
+
+*Note: Some HW numbers repeat in the course board (e.g., HW5 appears for different topics); use the date column to disambiguate.
+
+If you prefer different emoji or want a column for links to the report scripts / outputs, tell me and I will add a "Files / Link" column with direct paths to the relevant folders/files.
 
 ---
 
