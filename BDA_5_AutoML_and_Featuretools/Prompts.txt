@@ -1,0 +1,40 @@
+“Write Python code using H2O AutoML to train regression models. Include pandas and numpy
+for data manipulation. Ignore warnings."
+
+“Create a Python class that automates training and comparison of feature engineering
+approaches using H2O AutoML. It should load data from a CSV, let me specify the target
+column, and set a time limit.”
+
+“Add a method to load the CSV and show dataset shape, features, and target stats.”
+
+“Create meaningful domain-specific features for the California Housing dataset using latitude,
+longitude, median income, average rooms, etc. Include location-based, income, and
+interaction terms.”
+
+“Create meaningful domain-specific features for the California Housing dataset using latitude,
+longitude, median income, average rooms, etc. Include location-based, income, and
+interaction terms.”
+
+“Add another dataset created by FeatureTools, merge it with mine, and use the top 30
+correlated features.”
+
+“Add a method to check for data leakage between train and test sets by comparing
+overlapping rows and checking for highly correlated features with the target.”
+
+“Write a function to manually calculate RMSE, MAE, R², and MAPE for regression using NumPy
+arrays. Also compute % of predictions within 10% and 20% of actual values.”
+
+“Write a function to analyze feature importance from the best model in H2O AutoML, handle
+stacked ensembles by finding the base model, and categorize features by origin (original,
+manual, FeatureTools).”
+
+“Add a function to check for data leakage between train and test data.”
+
+“Show feature importance for the best model from H2O AutoML.”
+
+“Write a method to evaluate a trained AutoML model on test data, print metrics clearly, and
+return a dictionary with results.”
+
+“Write a function that runs AutoML on different feature sets (original, engineered, combined,
+auto, featuretools only) and compares their performance.”
+

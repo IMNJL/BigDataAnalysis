@@ -1,0 +1,9 @@
+pandas
+numpy
+scikit-learn
+featuretools
+flaml
+
+# Optional (for faster RF on multiple cores):
+# joblib
+# For docs: python-docx
