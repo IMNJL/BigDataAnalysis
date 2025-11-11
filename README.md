@@ -116,9 +116,9 @@ The table below lists practical topics and sub-topics covered by the experiments
 
 | Topic group | Subtopics / Exercises | Key files / folders |
 |---|---|---|
-| Crawler & Data Ingestion | Dynamic web crawler (requests/selenium), politeness, link extraction, PDF/asset download | `BDA_3_AI_enhanced_ETL/crawler.py`, `BDA_3_AI_enhanced_ETL/examples/` |
+| [Crawler & Data Ingestion](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_1_crawler_and_cleaner) | Dynamic web crawler (requests/selenium), politeness, link extraction, PDF/asset download | `BDA_3_AI_enhanced_ETL/crawler.py`, `BDA_3_AI_enhanced_ETL/examples/` |
 | PDF Extraction & Cleaner | PDF text extraction, basic OCR notes, text cleaning, summary extraction | `BDA_3_AI_enhanced_ETL/extract_pdf.py`, `BDA_3_AI_enhanced_ETL/cleaner.py`, `data/processed/` |
-| ETL & Preprocessing Pipelines | Tokenization, text normalization, Parquet export, Spark UDFs | `BDA_3_AI_enhanced_ETL/` and `BDA_8` examples |
+| [ETL & Preprocessing Pipelines](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_3_AI_enhanced_ETL) | Tokenization, text normalization, Parquet export, Spark UDFs | `BDA_3_AI_enhanced_ETL/` and `BDA_8` examples |
 | Feature Engineering | Numeric, categorical encoding, embeddings (TF-IDF, pretrained transformers) | `BDA_9_Reccomendation_System_Assigment/src/features/` |
 | Spark MLlib | Regression, classification, pipelines, scaling, HyperParam tuning (basic) | `BDA_6_Topic5_Regression_Clustering/run_experiment1.py`, `make_report.py` |
 | Deep Learning (TensorFlow / PyTorch) | Small model training, dataset API, mixed precision, saving checkpoints | `BDA_3`, `BDA_8/train_ddp.py` (examples), `BDA_6` experiment scripts |
