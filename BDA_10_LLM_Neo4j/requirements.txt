@@ -1,0 +1,7 @@
+requests
+feedparser
+py2neo
+pandas
+python-dotenv
+nltk
+regex
