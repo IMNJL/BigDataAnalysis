@@ -1,147 +1,205 @@
+#!/usr/bin/env python3
 """
-Simple Snorkel pipeline for labeling Amazon review polarity (positive/negative).
-
-This script demonstrates:
-- Loading CSVs (`train.csv`, `test.csv`).
-- Defining labeling functions (LFs).
-- Applying LFs to build a label matrix.
-- Training a Snorkel LabelModel.
-- Generating probabilistic labels and an estimated hard label.
-- Evaluating against `test.csv` if labels are available.
-
-Run:
-python snorkel_pipeline.py
-
+snorkel_pipeline.py
+Run: python snorkel_pipeline.py --data_dir ../data --labels_file ../labelstudio_export/labels.csv
 """
 
+import argparse
 import pandas as pd
 import numpy as np
-from snorkel.labeling import LabelModel, labeling_function, PandasLFApplier
-from snorkel.labeling import LFAnalysis
-from sklearn.metrics import classification_report, accuracy_score
 import re
+from snorkel.labeling import labeling_function, PandasLFApplier, LFAnalysis
+from snorkel.labeling import LabelModel
+from snorkel.labeling import filter_unlabeled_dataframe
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, accuracy_score, f1_score, confusion_matrix
+from sklearn.model_selection import train_test_split
+import joblib
+from tqdm import tqdm
 
-# Label constants
+# Label mapping
 ABSTAIN = -1
-POS = 1
 NEG = 0
+POS = 1
 
-# --- Load data ---
-train_path = "BDA_4_Autolabelling_Snorkel/train.csv"
-test_path = "BDA_4_Autolabelling_Snorkel/test.csv"
+def parse_args():
+    p = argparse.ArgumentParser()
+    p.add_argument("--data_dir", default="../data")
+    p.add_argument("--labels_file", default="../labelstudio_export/labels.csv", help="Label Studio export CSV (optional)")
+    p.add_argument("--out_dir", default="../outputs")
+    p.add_argument("--random_seed", type=int, default=42)
+    return p.parse_args()
 
-df_train = pd.read_csv(train_path)
-df_test = pd.read_csv(test_path)
+def load_data(data_dir):
+    train = pd.read_csv(f"{data_dir}/train.csv")
+    test = pd.read_csv(f"{data_dir}/test.csv")
+    return train, test
 
-# If labels in train are present, we'll hide them from LF stage to mimic unlabeled data
-if "label" not in df_train.columns:
-    df_train["label"] = np.nan
+# ---------- Preprocessing helpers ----------
+def preprocess_text(s):
+    if pd.isna(s):
+        return ""
+    s = s.lower()
+    s = re.sub(r"http\S+", " ", s)
+    s = re.sub(r"[^a-z0-9\s']", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
 
-# --- Helper functions ---
-positive_words = set(["good","great","excellent","love","loved","amazing","perfect","best","nice","exceeded"])
-negative_words = set(["bad","terrible","waste","worst","disappoint","broke","broken","awful","poor","stopped","not working","do not buy","dont buy"])
-
-def contains_word_set(x, words):
-    txt = str(x).lower()
-    for w in words:
-        if w in txt:
-            return True
-    return False
-
-# --- Labeling functions ---
+# ---------- Labeling functions ----------
+# These are simple examples; expand / tune for your dataset.
 @labeling_function()
-def lf_has_positive_words(x):
-    return POS if contains_word_set(x.text, positive_words) else ABSTAIN
-
-@labeling_function()
-def lf_has_negative_words(x):
-    return NEG if contains_word_set(x.text, negative_words) else ABSTAIN
-
-@labeling_function()
-def lf_exclamation_positive(x):
-    # Exclamation often indicates positive enthusiasm but not always; heuristic
-    txt = str(x.text)
-    if "!" in txt:
-        # Count positive vs negative words
-        if contains_word_set(txt, positive_words):
+def lf_has_positive_word(x):
+    positive_words = ["great", "excellent", "love", "loved", "awesome", "perfect", "best", "amazing", "fantastic"]
+    txt = x.review_text_pre
+    for w in positive_words:
+        if re.search(r"\b" + re.escape(w) + r"\b", txt):
             return POS
-        elif contains_word_set(txt, negative_words):
+    return ABSTAIN
+
+@labeling_function()
+def lf_has_negative_word(x):
+    negative_words = ["bad", "terrible", "awful", "hate", "hated", "worst", "disappointed", "disappointing"]
+    txt = x.review_text_pre
+    for w in negative_words:
+        if re.search(r"\b" + re.escape(w) + r"\b", txt):
             return NEG
-        else:
-            return ABSTAIN
+    return ABSTAIN
+
+@labeling_function()
+def lf_contains_exclamation_positive(x):
+    # Many exclamation marks often indicate positive sentiment, but it's heuristic
+    txt = x.review_text
+    if isinstance(txt, str) and txt.count("!") >= 2:
+        return POS
+    return ABSTAIN
+
+@labeling_function()
+def lf_contains_rating_very_high(x):
+    # If dataset includes rating column, use it to create simple heuristics
+    try:
+        if not np.isnan(x.rating):
+            if float(x.rating) >= 4.0:
+                return POS
+            if float(x.rating) <= 2.0:
+                return NEG
+    except Exception:
+        pass
     return ABSTAIN
 
 @labeling_function()
 def lf_short_negative(x):
-    # Very short messages like "Bad" or "Terrible" often negative
-    txt = str(x.text).strip()
-    if len(txt.split()) <= 2:
-        if contains_word_set(txt, negative_words):
+    # Very short reviews like "Terrible" or "awful" => negative
+    txt = x.review_text_pre
+    if len(txt.split()) <= 2 and len(txt) > 0:
+        if re.search(r"\b(bad|awful|terrible|hate|hated|worst)\b", txt):
             return NEG
-        elif contains_word_set(txt, positive_words):
+        if re.search(r"\b(great|love|excellent|best)\b", txt):
             return POS
+    return ABSTAIN
+
+# More advanced LFs can use embeddings, regex for emoticons, star ratings, product categories, or domain-specific lexicons.
+
+def main():
+    args = parse_args()
+    np.random.seed(args.random_seed)
+
+    train, test = load_data(args.data_dir)
+
+    # Minimal cleaning
+    for df in [train, test]:
+        if 'review_text' not in df.columns:
+            raise ValueError("Expect column 'review_text' in CSVs")
+        df['review_text_pre'] = df['review_text'].astype(str).apply(preprocess_text)
+
+    # Optional: load Label Studio human labels and merge into a small gold set
+    gold_df = None
+    try:
+        gold_df = pd.read_csv(args.labels_file)
+        # Expect columns: review_id, sentiment
+        # Normalize column names:
+        if 'review_id' in gold_df.columns and 'sentiment' in gold_df.columns:
+            gold_df = gold_df[['review_id','sentiment']].rename(columns={'sentiment':'gold_sentiment'})
+            # Map text labels to 0/1
+            gold_df['gold_label'] = gold_df['gold_sentiment'].map({'negative': 0, 'positive': 1})
+            print(f"Loaded {len(gold_df)} human-labeled examples from Label Studio.")
         else:
-            return ABSTAIN
-    return ABSTAIN
+            gold_df = None
+    except Exception as e:
+        print("No Label Studio labels loaded:", e)
+        gold_df = None
 
-@labeling_function()
-def lf_has_not_good(x):
-    # phrases like "not good", "not great" -> negative
-    txt = str(x.text).lower()
-    if re.search(r"not\s+(good|great|excellent)", txt):
-        return NEG
-    return ABSTAIN
+    # Apply LFs
+    lfs = [lf_has_positive_word, lf_has_negative_word, lf_contains_exclamation_positive,
+           lf_contains_rating_very_high, lf_short_negative]
+    applier = PandasLFApplier(lfs=lfs)
+    L_train = applier.apply(train)
+    L_test = applier.apply(test)
+    print("LF matrix shapes:", L_train.shape, L_test.shape)
 
-lfs = [lf_has_positive_words, lf_has_negative_words, lf_exclamation_positive, lf_short_negative, lf_has_not_good]
+    # LF analysis
+    print("\nLF Analysis (train):")
+    print(LFAnalysis(L_train, lfs).lf_summary())
 
-# --- Apply LFs ---
-applier = PandasLFApplier(lfs=lfs)
-L_train = applier.apply(df_train)
-print("Label matrix shape:", L_train.shape)
+    # Train Snorkel LabelModel
+    label_model = LabelModel(cardinality=2, verbose=True)
+    label_model.fit(L_train, n_epochs=500, log_freq=100, seed=args.random_seed)
+    probs_train = label_model.predict_proba(L_train)
+    probs_test = label_model.predict_proba(L_test)
 
-# LF analysis
-coverage = LFAnalysis(L=L_train, lfs=lfs).lf_summary()
-print("\nLF summary:\n", coverage)
+    # Save probabilistic labels for train set
+    train['prob_neg'] = probs_train[:,0]
+    train['prob_pos'] = probs_train[:,1]
+    train['pseudo_label'] = train['prob_pos'] >= 0.5
 
-# --- Train LabelModel ---
-label_model = LabelModel(cardinality=2, verbose=True)
-label_model.fit(L_train=L_train, n_epochs=200, log_freq=50, seed=42)
+    # Optional: if you have small human-labeled gold set, calibrate threshold or evaluate label_model
+    if gold_df is not None:
+        merged = train.merge(gold_df, on='review_id', how='inner')
+        if len(merged) > 0:
+            preds_from_label_model = (merged['prob_pos'] >= 0.5).astype(int)
+            from sklearn.metrics import accuracy_score, f1_score
+            print("Label Model vs gold --- acc:", accuracy_score(merged['gold_label'], preds_from_label_model),
+                  "f1:", f1_score(merged['gold_label'], preds_from_label_model))
 
-# Predict probabilistic labels on train set
-probs_train = label_model.predict_proba(L=L_train)
-# Convert to hard labels by argmax
-preds_train = probs_train.argmax(axis=1)
+    # Train a downstream classifier using pseudo-labels
+    vectorizer = TfidfVectorizer(max_features=20000, ngram_range=(1,2))
+    X_train = vectorizer.fit_transform(train['review_text_pre'])
+    y_train = train['pseudo_label'].astype(int)
 
-# Save labeled train set
-df_train_out = df_train.copy()
-df_train_out["snorkel_label"] = preds_train
-# Convert numeric labels to string labels for readability
-label_map = {POS:"positive", NEG:"negative"}
-df_train_out["snorkel_label_str"] = df_train_out["snorkel_label"].map(label_map)
+    # Use subset with confident probabilities for training (optional)
+    # E.g., keep only examples with prob_pos >= 0.9 or <= 0.1
+    confidence_mask = (train['prob_pos'] >= 0.9) | (train['prob_pos'] <= 0.1)
+    if confidence_mask.sum() >= 1000:
+        X_train_conf = X_train[confidence_mask.values]
+        y_train_conf = y_train[confidence_mask.values]
+        print(f"Training on {X_train_conf.shape[0]} confident pseudo-labeled examples.")
+    else:
+        X_train_conf = X_train
+        y_train_conf = y_train
+        print(f"Training on all pseudo-labeled examples: {X_train_conf.shape[0]}")
 
-out_path = "BDA_4_Autolabelling_Snorkel/train_labeled_by_snorkel.csv"
-df_train_out.to_csv(out_path, index=False)
-print(f"Saved snorkel labeled train set to {out_path}")
+    clf = LogisticRegression(max_iter=1000)
+    clf.fit(X_train_conf, y_train_conf)
 
-# --- Evaluate on test if available ---
-if "label" in df_test.columns and not df_test["label"].isnull().all():
-    # Map string labels to numeric
-    label_to_num = {"positive":POS, "negative":NEG}
-    y_test = df_test["label"].map(label_to_num).values
+    # Evaluate on test set
+    X_test = vectorizer.transform(test['review_text_pre'])
+    # If test has gold labels (some datasets include polarity label), use them; else, use Label Studio exported test labels.
+    y_test = None
+    if 'label' in test.columns:
+        y_test = test['label'].astype(int)
+    if y_test is None:
+        print("Test has no gold labels; evaluation requires human-labeled test set.")
+    else:
+        y_pred = clf.predict(X_test)
+        print("Classifier evaluation on test set:")
+        print(classification_report(y_test, y_pred, digits=4))
+        print("Accuracy:", accuracy_score(y_test, y_pred))
 
-    # Apply LFs to test set
-    L_test = applier.apply(df_test)
-    probs_test = label_model.predict_proba(L=L_test)
-    preds_test = probs_test.argmax(axis=1)
+    # Save artifacts
+    joblib.dump(vectorizer, f"{args.out_dir}/tfidf_vectorizer.joblib")
+    joblib.dump(clf, f"{args.out_dir}/logreg_clf.joblib")
+    joblib.dump(label_model, f"{args.out_dir}/snorkel_label_model.joblib")
+    print("Saved models and artifacts to", args.out_dir)
 
-    print("\nEvaluation on test set:")
-    print("Accuracy:", accuracy_score(y_test, preds_test))
-    print(classification_report(y_test, preds_test, target_names=["negative","positive"]))
-else:
-    print("Test labels not available for automatic evaluation. Export labeled train set and/or label a dev set using Label Studio.")
-
-# --- Quick summary ---
-print("\nQuick label distribution in snorkel output:")
-print(df_train_out["snorkel_label_str"].value_counts(dropna=False))
-
-# End
+if __name__ == "__main__":
+    main()
