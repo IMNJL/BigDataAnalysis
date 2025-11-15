@@ -123,7 +123,7 @@ The table below is a compact checklist of project/homework items (dates shown as
 | 08.11 | HW5 | [Topic 9 - Recommendation System Assignment — Comparative study & LLM-enhanced recsys](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_3_AI_enhanced_ETL) | 🟢 | handed |
 | 11.11 | HW6 | [Linear Regression, Lasso, Polynomial, Neural Network Regression](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_6_Topic5_Regression_Clustering) | 🟢 | handed |
 | 11.11 | HW8 | ["Data Parallelism" and "Model Parallelism" — Spark MLlib, PyTorch](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_8_Data_parallelism_and_Model_Parallelism DDP) | 🟢 | handed |
-| 12.11 | HW5* | AutoML and Featuretools | 🟢 | handed |
+| 12.11 | HW5 | [AutoML and Featuretools](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_5_AutoML_and_Featuretools) | 🟢 | handed |
 | 13.11 | HW10 | [HW-BDA-10-KG]() | 🔴 | pending |
 | 16.11 | HW11 | HW-BDA-11-Agent | 🔴 | pending |
 | 20.11 | HW7 | FinBert | 🔴 | pending |
