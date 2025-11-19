@@ -126,7 +126,7 @@ The table below is a compact checklist of project/homework items (dates shown as
 | 12.11 | HW5 | [AutoML and Featuretools](https://github.com/IMNJL/BigDataAnalysis/tree/main/BDA_5_AutoML_and_Featuretools) | 🟢 | handed |
 | 13.11 | HW10 | [HW-BDA-10-KG]() | 🔴 | pending |
 | 16.11 | HW11 | [HW-BDA-11-Agent]() | 🔴 | pending |
-| 20.11 | HW7 | FinBert | 🔴 | pending |
+| 20.11 | HW7 | [FinBert]() | 🔴 | pending |
 
 *Note: Some HW numbers repeat in the course board (e.g., HW5 appears for different topics); use the date column to disambiguate.
 
