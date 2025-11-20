@@ -1,0 +1,12 @@
+digraph architecture {
+  rankdir=LR;
+  DataSources [label="Data Sources\n(RSS / JSONL / APIs)", shape=box];
+  Crawler [label="Crawler / Agent\n(fetch, dedupe)", shape=box];
+  Preproc [label="Preprocessing\n(clean, segment)", shape=box];
+  FinBERT [label="FinBERT\n(sentiment & extraction)", shape=box];
+  Cleaner [label="Cleaning & Canonicalization\n(dedup, normalize)", shape=box];
+  Storage [label="Storage / KG / Files\n(JSONL, Neo4j)", shape=box];
+  Visual [label="Visualization / Reports\n(plots, Neo4j Browser)", shape=box];
+
+  DataSources -> Crawler -> Preproc -> FinBERT -> Cleaner -> Storage -> Visual;
+}
