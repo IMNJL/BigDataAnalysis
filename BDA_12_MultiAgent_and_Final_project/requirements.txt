@@ -1,2 +1,14 @@
-#requirments.txt
+flask
+requests
+pandas
+python-dotenv
+langchain
+faiss-cpu
+python-docx
+weaviate-client
+neo4j
+jinja2
+matplotlib
+Pillow
+numpy
 
