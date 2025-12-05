@@ -1,0 +1,117 @@
+@startuml
+title Multi-Agent Financial Analysis — System Architecture
+skinparam componentStyle rectangle
+
+' External data sources
+package "External Sources" <<Rectangle>> {
+  [Market APIs (Yahoo/AlphaVantage)]
+  [News / RSS / Webpages]
+  [PDF Reports / Filings]
+  [Images / Charts]
+}
+
+' Infrastructure & storage
+cloud "Infrastructure" {
+  database "Timeseries DB" as TSDB
+  database "Vector DB (FAISS/Weaviate)" as VDB
+  database "Metadata DB (SQLite/Neo4j)" as META
+  folder "Artifact Storage (S3/FS)" as STORAGE
+}
+
+' MCP Servers
+component "Coordinator MCP" as COORD
+component "DataBroker MCP" as DATA
+
+' Agents
+component "IngestAgent" as ING
+component "ParseAgent" as PARSE
+component "RAGAgent" as RAG
+component "AnalysisAgent" as ANALY
+component "ReportAgent" as REPORT
+component "MonitorAgent" as MON
+
+' LangChain / Chains
+component "LangChain Chains" as CHAINS
+component "Prompt Templates / Output Parsers" as PROMPTS
+
+' Tools
+rectangle "Tools" as TOOLS {
+  [CodeInterpreter]
+  [Search / Browser]
+  [Calculator]
+}
+
+' Memory
+component "Short-term Memory (Redis)" as STM
+component "Long-term Memory (Vector+Docs)" as LTM
+
+' Agent responsibilities & flows
+ING -down-> COORD : register / heartbeat
+PARSE -down-> COORD : notify parse_complete
+RAG -down-> COORD : index_complete
+ANALY -down-> COORD : analysis_complete
+REPORT -down-> COORD : report_ready
+MON -down-> COORD : alerts
+
+' Data flows from sources -> ingest -> databroker -> pipeline
+[Market APIs (Yahoo/AlphaVantage)] --> ING : fetch price/time-series
+[News / RSS / Webpages] --> ING : scrape / fetch
+[PDF Reports / Filings] --> ING : download
+[Images / Charts] --> ING : download
+
+ING --> DATA : store raw artifacts
+ING --> PARSE : hand-off raw PDFs/images
+PARSE --> DATA : store processed text/tables
+PARSE --> RAG : submit docs to embed
+RAG --> VDB : upsert embeddings
+RAG --> META : store metadata
+
+ANALY --> TSDB : read timeseries
+ANALY --> VDB : retrieve docs
+ANALY --> TOOLS : run code/backtest
+ANALY --> PROMPTS : call prompting
+
+REPORT --> STORAGE : save report artifacts (pdf, md, images)
+REPORT --> COORD : final report
+
+' Memory usage
+ANALY --> STM : write session context
+ANALY --> LTM : save summaries / compressed memories
+RAG --> LTM : back-reference embeddings
+
+' LangChain & prompts
+CHAINS --> RAG : retrieval chain
+CHAINS --> ANALY : analysis chain
+PROMPTS --> CHAINS : templates
+
+' Monitoring and feedback
+MON --> COORD : monitor events
+COORD --> ING : re-schedule ingest
+COORD --> ANALY : re-run failed tasks
+
+' External access (UI / API)
+actor "User / Orchestration" as USER
+USER --> COORD : submit high-level goal / query
+COORD --> CHAINS : generate plan / tasks
+COORD --> REPORT : fetch final report
+
+note right of COORD
+  - Task routing & scheduling
+  - Global plan storage
+  - Agent registry
+end note
+
+note left of DATA
+  - Unified data access
+  - Artifact cache
+  - Provenance tracking
+end note
+
+legend right
+| Component | Responsibility |
+| Coordinator MCP | Task routing, registry |
+| DataBroker MCP  | Artifact store & cache |
+| RAGAgent        | Embeddings & retrieval |
+endlegend
+
+@enduml

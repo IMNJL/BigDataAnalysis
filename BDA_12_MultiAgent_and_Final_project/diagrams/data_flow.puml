@@ -1,0 +1,38 @@
+@startuml
+!theme plain
+title Data Flow — RAG Retrieval & Summarization
+
+actor User
+participant "Web UI / CLI" as UI
+participant "Ingest Agent" as Ingest
+participant "DataBroker (store)" as DataBroker
+participant "RAG Agent" as RAG
+participant "Embeddings/Index" as Index
+participant "LLM (Gemini)" as LLM
+participant "Outputs (outputs/)" as Outputs
+
+User -> UI : Trigger ingest / upload
+UI -> Ingest : POST file + meta
+Ingest -> DataBroker : POST /store (file)
+DataBroker -> DataBroker : save /tmp/<id>
+DataBroker -> UI : return artifact_id
+UI -> RAG : trigger run (artifact_id, query)
+RAG -> DataBroker : GET /artifact/<id>/download
+DataBroker -> RAG : stream CSV
+RAG -> RAG : parse rows -> docs
+RAG -> Index : build embeddings (sentence-transformers)
+Index -> RAG : index ready (FAISS or numpy)
+RAG -> Index : query embedding
+Index -> RAG : top-k ids
+RAG -> LLM : prompt with retrieved items
+LLM -> RAG : summary text
+RAG -> Outputs : save summary, retrieval examples, plots
+RAG -> UI : return results / status
+
+note over Index,RAG
+Fallbacks:
+- If sentence-transformers missing -> TF-count vectors
+- If faiss missing -> brute-force numpy L2 search
+end note
+
+@enduml

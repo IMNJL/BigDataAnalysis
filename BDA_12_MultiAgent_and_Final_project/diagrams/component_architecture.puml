@@ -1,0 +1,50 @@
+@startuml
+!theme plain
+title Component Architecture — Multi-Agent RAG System
+
+package "MCP Layer" {
+  [Coordinator] as Coordinator
+  [DataBroker] as DataBroker
+}
+
+package "Agents" {
+  [Ingest Agent] as Ingest
+  [RAG Agent] as RAG
+  [Auto Agent] as Auto
+  [Manual Agent] as Manual
+}
+
+package "UI & Orchestration" {
+  [Web UI] as UI
+  [Experiment Orchestrator] as Orchestrator
+}
+
+package "External Services" {
+  [LLM Provider (Gemini / Vertex AI)] as LLM
+  [Vector DB / FAISS] as VectorDB
+  [Object Storage (S3/GCS)] as Storage
+}
+
+Coordinator -down-> DataBroker : coordinates
+Ingest --> DataBroker : POST /store (file + metadata)
+DataBroker --> Storage : optionally persist artifact
+RAG --> DataBroker : GET /artifact/<id> /download
+RAG --> VectorDB : store / query vectors
+RAG --> LLM : summarize retrieved contents
+UI --> Orchestrator : trigger experiments / jobs
+Orchestrator --> Coordinator : POST /task
+Auto --> Orchestrator : register / submit outputs
+Manual --> Orchestrator : register / submit outputs
+
+note right of DataBroker
+- files saved to /tmp/<uuid>
+- metadata in-memory (demo)
+- fallback: check /tmp when metadata missing
+end note
+
+note left of RAG
+Embeddings: sentence-transformers (preferred)
+Fallback: TF-count vectors + NumPy search
+end note
+
+@enduml
