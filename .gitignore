@@ -49,3 +49,4 @@ outputs/
 
 BDA_4_Autolabelling_Snorkel/test.csv
 BDA_4_Autolabelling_Snorkel/train.csv
+*.zip
