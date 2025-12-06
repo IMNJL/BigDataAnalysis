@@ -11,4 +11,7 @@ jinja2
 matplotlib
 Pillow
 numpy
+sentence-transformers
+google-cloud-aiplatform
+faiss
 
